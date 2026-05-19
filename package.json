@@ -1,0 +1,12 @@
+{
+  "name": "ai-smart-study-assistant",
+  "version": "1.0.0",
+  "description": "Monorepo for AI Smart Study Assistant — Expo frontend + Express backend",
+  "private": true,
+  "scripts": {
+    "frontend": "cd frontend && npm start",
+    "backend": "cd backend && npm run dev",
+    "backend:install": "cd backend && npm install",
+    "frontend:install": "cd frontend && npm install"
+  }
+}
