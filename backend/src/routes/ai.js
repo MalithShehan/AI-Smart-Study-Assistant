@@ -1,14 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const aiController = require('../controllers/aiController');
+const { validateGenerateQuiz, validateSummarize, validateAskQuestion } = require('../validators/aiValidator');
 
-// POST generate a quiz from topic
-router.post('/quiz', aiController.generateQuiz);
-
-// POST summarize study notes
-router.post('/summarize', aiController.summarizeNotes);
-
-// POST ask a study question
-router.post('/ask', aiController.askQuestion);
+router.post('/quiz', validateGenerateQuiz, aiController.generateQuiz);
+router.post('/summarize', validateSummarize, aiController.summarizeNotes);
+router.post('/ask', validateAskQuestion, aiController.askQuestion);
 
 module.exports = router;
