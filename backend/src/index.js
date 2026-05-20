@@ -1,22 +1,34 @@
 const app = require('./app');
 const config = require('./config');
+const { connectDB, disconnectDB } = require('./config/database');
 
-const server = app.listen(config.port, () => {
-  console.log(`[${config.env}] Server running on http://localhost:${config.port}`);
-  console.log(`API available at http://localhost:${config.port}${config.api.prefix}`);
-});
+const startServer = async () => {
+  await connectDB();
 
-// Graceful shutdown on SIGTERM (e.g., Docker / cloud platforms)
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received — shutting down gracefully...');
-  server.close(() => {
-    console.log('Server closed.');
-    process.exit(0);
+  const server = app.listen(config.port, () => {
+    console.log(`[${config.env}] Server running on http://localhost:${config.port}`);
+    console.log(`API available at http://localhost:${config.port}${config.api.prefix}`);
   });
-});
 
-// Catch unhandled promise rejections and shut down cleanly
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Promise Rejection:', err.message);
-  server.close(() => process.exit(1));
-});
+  const shutdown = async (signal) => {
+    console.log(`\n${signal} received — shutting down gracefully...`);
+    server.close(async () => {
+      await disconnectDB();
+      console.log('Server closed.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+
+  process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Promise Rejection:', err.message);
+    server.close(async () => {
+      await disconnectDB();
+      process.exit(1);
+    });
+  });
+};
+
+startServer();

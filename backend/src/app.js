@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
+const fs = require('fs');
 
 const config = require('./config');
 const routes = require('./routes');
@@ -10,18 +12,25 @@ const { notFound, errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
 
-// ── Security ────────────────────────────────────────────────────────────────
-app.use(helmet());
-app.use(cors({ origin: config.cors.origin }));
+// ── Ensure uploads directory exists ──────────────────────────────────────────
+const uploadsDir = path.join(__dirname, '..', config.upload.uploadDir);
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
-// ── Body parsing ─────────────────────────────────────────────────────────────
+// ── Security ──────────────────────────────────────────────────────────────────
+app.use(helmet());
+app.use(cors({ origin: config.cors.origin, credentials: true }));
+
+// ── Body parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ── Request logging ──────────────────────────────────────────────────────────
+// ── Static files (uploaded images) ───────────────────────────────────────────
+app.use('/uploads', express.static(uploadsDir));
+
+// ── Request logging ───────────────────────────────────────────────────────────
 app.use(requestLogger);
 
-// ── Health check (exempt from rate limiter) ──────────────────────────────────
+// ── Health check (exempt from rate limiter) ───────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
