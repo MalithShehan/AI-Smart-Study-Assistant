@@ -50,9 +50,17 @@ const config = {
   },
 
   upload: {
-    maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 5 * 1024 * 1024, // 5 MB
-    allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 10 * 1024 * 1024,   // 10 MB images
+    maxPdfSize: parseInt(process.env.MAX_PDF_SIZE, 10) || 20 * 1024 * 1024,     // 20 MB PDFs
+    allowedImageTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    allowedPdfTypes: ['application/pdf'],
     uploadDir: process.env.UPLOAD_DIR || 'uploads',
+  },
+
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
   },
 
   ai: {
