@@ -56,8 +56,23 @@ const config = {
   },
 
   ai: {
-    apiKey: process.env.AI_API_KEY || '',
-    model: process.env.AI_MODEL || 'gpt-3.5-turbo',
+    apiKey: process.env.OPENAI_API_KEY || '',
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    // Token budgets per task (prompt + completion combined)
+    maxTokens: {
+      summary: parseInt(process.env.AI_MAX_TOKENS_SUMMARY, 10) || 1024,
+      quiz: parseInt(process.env.AI_MAX_TOKENS_QUIZ, 10) || 2048,
+      qa: parseInt(process.env.AI_MAX_TOKENS_QA, 10) || 512,
+    },
+    temperature: {
+      summary: parseFloat(process.env.AI_TEMP_SUMMARY) || 0.3,
+      quiz: parseFloat(process.env.AI_TEMP_QUIZ) || 0.7,
+      qa: parseFloat(process.env.AI_TEMP_QA) || 0.5,
+    },
+    // Hard cap on input characters before truncation (~4 chars ≈ 1 token)
+    maxInputChars: parseInt(process.env.AI_MAX_INPUT_CHARS, 10) || 12000,
+    timeout: parseInt(process.env.AI_TIMEOUT_MS, 10) || 30000,
+    retryAttempts: parseInt(process.env.AI_RETRY_ATTEMPTS, 10) || 3,
   },
 };
 
