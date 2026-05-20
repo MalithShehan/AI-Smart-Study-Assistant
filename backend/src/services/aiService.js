@@ -161,20 +161,31 @@ const scanAndSummarize = async ({ extractedText, subject = '', style = 'bullet' 
 const generateQuiz = async ({ topic, notes = '', numQuestions = 5, difficulty = 'medium' }) => {
   const context = notes ? `\n\nBase questions on these notes:\n${truncateInput(notes)}` : '';
 
+  const schema = JSON.stringify({
+    questionNumber: 1,
+    type: 'mcq',
+    difficulty,
+    topic: '<sub-topic this question covers>',
+    question: '<question text>',
+    options: ['A) ...', 'B) ...', 'C) ...', 'D) ...'],
+    answer: '<the full correct option string, e.g. "A) ...">',
+    explanation: '<why the answer is correct and why the others are not>',
+  });
+
   const messages = [
     {
       role: 'system',
       content:
-        'You are a quiz generator. Always respond with a valid JSON array of question objects. ' +
-        'Each object must have: "question" (string), "options" (array of 4 strings), ' +
-        '"answer" (the correct option string), "explanation" (brief string).',
+        'You are an expert quiz generator. Always respond with a valid JSON array. ' +
+        `Each element must match this schema exactly:\n${schema}\n` +
+        'Ensure options are plausible distractors. Explanations must be clear and educational. ' +
+        'Return ONLY the JSON array — no markdown fences or additional text.',
     },
     {
       role: 'user',
       content:
         `Generate ${numQuestions} ${difficulty} multiple-choice questions about "${topic}".` +
-        context +
-        '\n\nReturn ONLY the JSON array, no markdown fences or extra text.',
+        context,
     },
   ];
 
@@ -186,9 +197,11 @@ const generateQuiz = async ({ topic, notes = '', numQuestions = 5, difficulty = 
   let questions;
   try {
     // Strip accidental markdown fences the model may add despite instructions
-    const raw = result.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+    const raw = result.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     questions = JSON.parse(raw);
     if (!Array.isArray(questions)) throw new Error('Expected array');
+    // Normalise questionNumber in case the model skips it
+    questions = questions.map((q, i) => ({ questionNumber: i + 1, type: 'mcq', ...q }));
   } catch {
     const err = new Error('AI returned malformed quiz JSON');
     err.statusCode = 502;
@@ -199,7 +212,7 @@ const generateQuiz = async ({ topic, notes = '', numQuestions = 5, difficulty = 
   return {
     topic,
     difficulty,
-    numQuestions: questions.length,
+    totalQuestions: questions.length,
     questions,
     usage: result.usage,
   };
