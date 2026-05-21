@@ -68,7 +68,7 @@ export const ProfileScreen: React.FC = () => {
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: () => navigation.navigate('Login') },
+      { text: 'Log Out', style: 'destructive', onPress: () => navigation.replace('Login') },
     ]);
   };
 

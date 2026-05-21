@@ -1,24 +1,38 @@
-// Placeholder AI controller — wire up your preferred AI provider (e.g. OpenAI) here
+const aiService = require('../services/aiService');
+const asyncHandler = require('../utils/asyncHandler');
+const apiResponse = require('../utils/apiResponse');
 
-const generateQuiz = (req, res) => {
-  const { topic, numQuestions = 5 } = req.body;
-  if (!topic) return res.status(400).json({ error: 'topic is required' });
-  // TODO: call AI provider to generate quiz questions for `topic`
-  res.json({ message: `Quiz generation for "${topic}" coming soon`, numQuestions });
-};
+const generateQuiz = asyncHandler(async (req, res) => {
+  const { topic, notes, numQuestions = 5, difficulty = 'medium' } = req.body;
+  const data = await aiService.generateQuiz({
+    topic,
+    notes,
+    numQuestions: parseInt(numQuestions, 10),
+    difficulty,
+  });
+  apiResponse.success(res, data, 'Quiz generated');
+});
 
-const summarizeNotes = (req, res) => {
-  const { notes } = req.body;
-  if (!notes) return res.status(400).json({ error: 'notes are required' });
-  // TODO: call AI provider to summarize notes
-  res.json({ message: 'Summarization coming soon', length: notes.length });
-};
+const summarizeNotes = asyncHandler(async (req, res) => {
+  const { notes, subject, style = 'bullet' } = req.body;
+  const data = await aiService.summarizeNotes({ notes, subject, style });
+  apiResponse.success(res, data, 'Notes summarised');
+});
 
-const askQuestion = (req, res) => {
+/**
+ * POST /api/v1/ai/scan-summarize
+ * Accepts OCR-extracted text (from client-side scanner) and returns an AI summary.
+ */
+const scanAndSummarize = asyncHandler(async (req, res) => {
+  const { extractedText, subject, style = 'bullet' } = req.body;
+  const data = await aiService.scanAndSummarize({ extractedText, subject, style });
+  apiResponse.success(res, data, 'Scan summarised');
+});
+
+const askQuestion = asyncHandler(async (req, res) => {
   const { question, context } = req.body;
-  if (!question) return res.status(400).json({ error: 'question is required' });
-  // TODO: call AI provider with question and optional study context
-  res.json({ message: 'Q&A coming soon', question });
-};
+  const data = await aiService.askQuestion({ question, context });
+  apiResponse.success(res, data, 'Question answered');
+});
 
-module.exports = { generateQuiz, summarizeNotes, askQuestion };
+module.exports = { generateQuiz, summarizeNotes, scanAndSummarize, askQuestion };

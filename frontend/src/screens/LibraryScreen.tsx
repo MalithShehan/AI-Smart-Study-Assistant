@@ -7,208 +7,296 @@ import {
   StyleSheet,
   FlatList,
   TextInput,
+  Modal,
+  Pressable,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList, StudyCard } from '../types';
-import { Card } from '../components/Card';
-import { Badge, ProgressBar } from '../components/UI';
-import { Colors, Fonts, BorderRadius, Shadow } from '../theme';
+import { RootStackParamList } from '../types';
+import { Colors, Fonts, Shadow } from '../theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Tab = 'All' | 'Notes' | 'Quizzes' | 'Papers';
 
-const categories = ['All', 'Math', 'Science', 'History', 'Language', 'Saved'];
+interface LibraryItem {
+  id: string;
+  title: string;
+  type: 'Note' | 'Quiz' | 'Paper';
+  subject: string;
+  date: string;
+  meta: string;
+  color: string;
+  icon: string;
+}
 
-const studyCards: StudyCard[] = [
-  { id: '1', title: 'Calculus Fundamentals', subject: 'Mathematics', color: '#FF7A00', icon: '📐', progress: 0.72 },
-  { id: '2', title: 'Quantum Mechanics Basics', subject: 'Physics', color: '#8B5CF6', icon: '⚛️', progress: 0.45 },
-  { id: '3', title: 'Organic Chemistry Reactions', subject: 'Chemistry', color: '#4CAF50', icon: '🧪', progress: 0.88 },
-  { id: '4', title: 'Cell Division & DNA', subject: 'Biology', color: '#F59E0B', icon: '🧬', progress: 0.33 },
-  { id: '5', title: 'World War II History', subject: 'History', color: '#EF4444', icon: '🌍', progress: 0.60 },
-  { id: '6', title: 'English Grammar Rules', subject: 'Language', color: '#06B6D4', icon: '✏️', progress: 0.50 },
-  { id: '7', title: 'Algebra & Equations', subject: 'Mathematics', color: '#FF7A00', icon: '➕', progress: 0.90 },
-  { id: '8', title: 'Newton\'s Laws of Motion', subject: 'Physics', color: '#8B5CF6', icon: '🌀', progress: 0.65 },
+const libraryItems: LibraryItem[] = [
+  { id: '1', title: 'Biology Notes', type: 'Note', subject: 'Biology', date: '25 May 2024', meta: '12 pages', color: '#06B6D4', icon: 'document-text' },
+  { id: '2', title: 'Physics Formulas', type: 'Note', subject: 'Physics', date: '20 May 2024', meta: '8 pages', color: '#4CAF50', icon: 'document-text' },
+  { id: '3', title: 'Chemistry Quiz', type: 'Quiz', subject: 'Chemistry', date: '18 May 2024', meta: '10 Questions', color: '#EF4444', icon: 'clipboard' },
+  { id: '4', title: 'Math Equations', type: 'Note', subject: 'Mathematics', date: '15 May 2024', meta: '15 pages', color: '#FF7A00', icon: 'calculator' },
+  { id: '5', title: 'Past Paper 2023', type: 'Paper', subject: 'General', date: '10 May 2024', meta: 'PDF', color: '#8B5CF6', icon: 'document' },
+  { id: '6', title: 'History Chapter 5', type: 'Note', subject: 'History', date: '08 May 2024', meta: '9 pages', color: '#F59E0B', icon: 'document-text' },
+  { id: '7', title: 'Biology Quiz', type: 'Quiz', subject: 'Biology', date: '05 May 2024', meta: '15 Questions', color: '#EF4444', icon: 'clipboard' },
+  { id: '8', title: 'A/L Papers 2022', type: 'Paper', subject: 'General', date: '01 May 2024', meta: 'PDF', color: '#8B5CF6', icon: 'document' },
 ];
+
+const TABS: Tab[] = ['All', 'Notes', 'Quizzes', 'Papers'];
+
+const typeMap: Record<Tab, LibraryItem['type'] | null> = {
+  All: null, Notes: 'Note', Quizzes: 'Quiz', Papers: 'Paper',
+};
+
+// ── Empty state component ────────────────────────────────────────────────────
+
+function EmptyState({ tab, search }: { tab: Tab; search: string }) {
+  if (search) {
+    return (
+      <View style={styles.emptyWrap}>
+        <View style={styles.emptyRobotCircle}>
+          <Text style={styles.emptyEmoji}>🔍</Text>
+        </View>
+        <Text style={styles.emptyTitle}>No Results Found</Text>
+        <Text style={styles.emptySub}>We couldn't find anything{'\n'}matching your search.</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.emptyWrap}>
+      <View style={styles.emptyRobotCircle}>
+        <Text style={styles.emptyEmoji}>📦</Text>
+      </View>
+      <Text style={styles.emptyTitle}>Your Library is Empty</Text>
+      <Text style={styles.emptySub}>Save your notes, quizzes{'\n'}and papers here.</Text>
+    </View>
+  );
+}
 
 export const LibraryScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const [activeCategory, setActiveCategory] = useState('All');
+  const [activeTab, setActiveTab] = useState<Tab>('All');
   const [search, setSearch] = useState('');
+  const [menuItemId, setMenuItemId] = useState<string | null>(null);
 
-  const filtered = studyCards.filter((c) => {
-    const matchesCategory = activeCategory === 'All' || c.subject.toLowerCase().includes(activeCategory.toLowerCase());
-    const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase()) || c.subject.toLowerCase().includes(search.toLowerCase());
-    return matchesCategory && matchesSearch;
+  const filtered = libraryItems.filter((item) => {
+    const matchType = !typeMap[activeTab] || item.type === typeMap[activeTab];
+    const q = search.toLowerCase();
+    const matchSearch = !q || item.title.toLowerCase().includes(q) || item.subject.toLowerCase().includes(q);
+    return matchType && matchSearch;
   });
+
+  const renderItem = ({ item }: { item: LibraryItem }) => (
+    <TouchableOpacity
+      style={styles.listItem}
+      activeOpacity={0.82}
+      onPress={() => navigation.navigate('AISummary', {})}
+    >
+      {/* Icon */}
+      <View style={[styles.itemIconBox, { backgroundColor: item.color + '20' }]}>
+        <Ionicons name={item.icon as any} size={22} color={item.color} />
+      </View>
+
+      {/* Content */}
+      <View style={styles.itemContent}>
+        <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.itemMeta}>{item.date} • {item.meta}</Text>
+      </View>
+
+      {/* 3-dot menu */}
+      <TouchableOpacity
+        style={styles.menuBtn}
+        onPress={() => setMenuItemId(item.id)}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="ellipsis-vertical" size={18} color={Colors.textGray} />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+      {/* ── Header ──────────────────────────────────────── */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>My Library</Text>
-          <Text style={styles.headerSub}>{studyCards.length} study materials</Text>
-        </View>
-        <TouchableOpacity style={styles.headerBtn}>
-          <Ionicons name="add" size={22} color={Colors.primary} />
+        <Text style={styles.headerTitle}>My Library</Text>
+        <TouchableOpacity style={styles.searchIconBtn}>
+          <Ionicons name="search-outline" size={22} color={Colors.textDark} />
         </TouchableOpacity>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchContainer}>
+      {/* ── Tab filter ──────────────────────────────────── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabScroll}
+        contentContainerStyle={styles.tabContent}
+      >
+        {TABS.map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tabPill, activeTab === tab && styles.tabPillActive]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* ── Search + filter bar ─────────────────────────── */}
+      <View style={styles.searchRow}>
         <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={18} color={Colors.textLight} />
+          <Ionicons name="search-outline" size={16} color={Colors.textLight} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search topics, subjects..."
+            placeholder="Search your library..."
             placeholderTextColor={Colors.textLight}
             value={search}
             onChangeText={setSearch}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color={Colors.textLight} />
+              <Ionicons name="close-circle" size={16} color={Colors.textLight} />
             </TouchableOpacity>
           )}
         </View>
+        <TouchableOpacity style={styles.filterBtn}>
+          <Ionicons name="filter-outline" size={18} color={Colors.textDark} />
+        </TouchableOpacity>
       </View>
 
-      {/* Category pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryScroll}
-        contentContainerStyle={styles.categoryContent}
-      >
-        {categories.map((cat) => (
-          <TouchableOpacity
-            key={cat}
-            style={[styles.categoryPill, activeCategory === cat && styles.categoryPillActive]}
-            onPress={() => setActiveCategory(cat)}
-          >
-            <Text style={[styles.categoryText, activeCategory === cat && styles.categoryTextActive]}>
-              {cat}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Stats banner */}
-      {activeCategory === 'All' && !search && (
-        <LinearGradient
-          colors={['#FF7A00', '#FF9A3C']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.statsBanner}
-        >
-          <View style={styles.statsBannerItem}>
-            <Text style={styles.statsBannerVal}>{studyCards.length}</Text>
-            <Text style={styles.statsBannerLabel}>Topics</Text>
-          </View>
-          <View style={styles.statsBannerDivider} />
-          <View style={styles.statsBannerItem}>
-            <Text style={styles.statsBannerVal}>6</Text>
-            <Text style={styles.statsBannerLabel}>Subjects</Text>
-          </View>
-          <View style={styles.statsBannerDivider} />
-          <View style={styles.statsBannerItem}>
-            <Text style={styles.statsBannerVal}>64%</Text>
-            <Text style={styles.statsBannerLabel}>Avg Progress</Text>
-          </View>
-        </LinearGradient>
-      )}
-
-      {/* Cards list */}
+      {/* ── List ────────────────────────────────────────── */}
       {filtered.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>📚</Text>
-          <Text style={styles.emptyTitle}>No materials found</Text>
-          <Text style={styles.emptySub}>Try a different search or category</Text>
-        </View>
+        <EmptyState tab={activeTab} search={search} />
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
+          renderItem={renderItem}
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.studyCardItem}
-              activeOpacity={0.88}
-              onPress={() => navigation.navigate('AISummary', {})}
-            >
-              <View style={[styles.cardIconBox, { backgroundColor: item.color + '20' }]}>
-                <Text style={styles.cardEmoji}>{item.icon}</Text>
-              </View>
-              <View style={styles.cardBody}>
-                <View style={styles.cardTopRow}>
-                  <Badge label={item.subject} bgColor={item.color + '20'} color={item.color} size="sm" />
-                  <TouchableOpacity>
-                    <Ionicons name="bookmark-outline" size={18} color={Colors.textGray} />
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-                <View style={{ marginTop: 8, gap: 4 }}>
-                  <View style={styles.cardProgressRow}>
-                    <Text style={styles.cardProgressText}>Progress</Text>
-                    <Text style={[styles.cardProgressText, { color: item.color }]}>{Math.round(item.progress * 100)}%</Text>
-                  </View>
-                  <ProgressBar progress={item.progress} color={item.color} height={5} />
-                </View>
-              </View>
-            </TouchableOpacity>
-          )}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
+
+      {/* ── 3-dot context menu modal ─────────────────────── */}
+      <Modal
+        visible={menuItemId !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuItemId(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setMenuItemId(null)}>
+          <View style={styles.menuSheet}>
+            {[
+              { icon: 'open-outline', label: 'Open', color: Colors.textDark },
+              { icon: 'share-outline', label: 'Share', color: Colors.textDark },
+              { icon: 'bookmark-outline', label: 'Save to Favourites', color: Colors.textDark },
+              { icon: 'trash-outline', label: 'Delete', color: Colors.danger },
+            ].map((opt, i, arr) => (
+              <TouchableOpacity
+                key={opt.label}
+                style={[styles.menuOption, i < arr.length - 1 && styles.menuOptionBorder]}
+                onPress={() => setMenuItemId(null)}
+              >
+                <Ionicons name={opt.icon as any} size={20} color={opt.color} />
+                <Text style={[styles.menuOptionText, { color: opt.color }]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 14 },
+  container: { flex: 1, backgroundColor: Colors.white },
+
+  // Header
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14,
+  },
   headerTitle: { fontFamily: Fonts.bold, fontSize: 24, color: Colors.textDark },
-  headerSub: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.textGray, marginTop: 2 },
-  headerBtn: { width: 44, height: 44, borderRadius: 13, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center' },
-  searchContainer: { paddingHorizontal: 20, marginBottom: 14 },
+  searchIconBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center',
+  },
+
+  // Tabs
+  tabScroll: { maxHeight: 52 },
+  tabContent: { paddingHorizontal: 20, gap: 10, alignItems: 'center', paddingVertical: 8 },
+  tabPill: {
+    paddingHorizontal: 20, paddingVertical: 8,
+    borderRadius: 20, backgroundColor: '#F5F5F5',
+  },
+  tabPillActive: { backgroundColor: Colors.primary },
+  tabText: { fontFamily: Fonts.medium, fontSize: 14, color: Colors.textGray },
+  tabTextActive: { color: Colors.white },
+
+  // Search + filter
+  searchRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 10,
+  },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.white,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    height: 50,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#F5F5F5', borderRadius: 12,
+    paddingHorizontal: 14, height: 44,
   },
   searchInput: { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: Colors.textDark },
-  categoryScroll: { marginBottom: 14 },
-  categoryContent: { paddingHorizontal: 20, gap: 10 },
-  categoryPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border },
-  categoryPillActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  categoryText: { fontFamily: Fonts.medium, fontSize: 13, color: Colors.textGray },
-  categoryTextActive: { color: Colors.white },
-  statsBanner: { marginHorizontal: 20, borderRadius: 16, padding: 16, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', marginBottom: 16 },
-  statsBannerItem: { alignItems: 'center', gap: 2 },
-  statsBannerVal: { fontFamily: Fonts.bold, fontSize: 22, color: Colors.white },
-  statsBannerLabel: { fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.85)' },
-  statsBannerDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.3)' },
-  listContent: { paddingHorizontal: 20, gap: 12 },
-  studyCardItem: { flexDirection: 'row', backgroundColor: Colors.white, borderRadius: 18, padding: 16, gap: 14, alignItems: 'flex-start', ...Shadow.small },
-  cardIconBox: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  cardEmoji: { fontSize: 24 },
-  cardBody: { flex: 1 },
-  cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  cardTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: Colors.textDark, lineHeight: 22 },
-  cardProgressRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  cardProgressText: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray },
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingBottom: 100 },
+  filterBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center',
+  },
+
+  // List
+  listContent: { paddingHorizontal: 20, paddingTop: 10 },
+  listItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingVertical: 14, backgroundColor: Colors.white,
+  },
+  separator: { height: 1, backgroundColor: '#F0F0F0', marginLeft: 68 },
+  itemIconBox: {
+    width: 48, height: 48, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  itemContent: { flex: 1 },
+  itemTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: Colors.textDark, marginBottom: 4 },
+  itemMeta: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray },
+  menuBtn: { padding: 4 },
+
+  // Empty state
+  emptyWrap: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 100, gap: 12,
+  },
+  emptyRobotCircle: {
+    width: 120, height: 120, borderRadius: 60,
+    backgroundColor: '#FFF3E8',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 8,
+  },
   emptyEmoji: { fontSize: 52 },
   emptyTitle: { fontFamily: Fonts.bold, fontSize: 20, color: Colors.textDark },
-  emptySub: { fontFamily: Fonts.regular, fontSize: 15, color: Colors.textGray },
+  emptySub: {
+    fontFamily: Fonts.regular, fontSize: 14, color: Colors.textGray,
+    textAlign: 'center', lineHeight: 22,
+  },
+
+  // Context menu modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end', paddingBottom: 32,
+  },
+  menuSheet: {
+    marginHorizontal: 16, backgroundColor: Colors.white,
+    borderRadius: 20, overflow: 'hidden', ...Shadow.medium,
+  },
+  menuOption: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 20, paddingVertical: 16,
+  },
+  menuOptionBorder: { borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+  menuOptionText: { fontFamily: Fonts.medium, fontSize: 15 },
 });

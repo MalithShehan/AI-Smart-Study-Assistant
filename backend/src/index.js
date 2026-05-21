@@ -1,26 +1,38 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+const app = require('./app');
+const config = require('./config');
+const { connectDB, disconnectDB } = require('./config/database');
+const { startReminderCron } = require('./services/timetableService');
 
-const studyRoutes = require('./routes/study');
-const aiRoutes = require('./routes/ai');
+const startServer = async () => {
+  await connectDB();
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+  // Start cron-based reminder scheduler (timetable + exam notifications)
+  startReminderCron();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+  const server = app.listen(config.port, () => {
+    console.log(`[${config.env}] Server running on http://localhost:${config.port}`);
+    console.log(`API available at http://localhost:${config.port}${config.api.prefix}`);
+  });
 
-// Routes
-app.use('/api/study', studyRoutes);
-app.use('/api/ai', aiRoutes);
+  const shutdown = async (signal) => {
+    console.log(`\n${signal} received — shutting down gracefully...`);
+    server.close(async () => {
+      await disconnectDB();
+      console.log('Server closed.');
+      process.exit(0);
+    });
+  };
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'AI Smart Study Assistant API is running' });
-});
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+  process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Promise Rejection:', err.message);
+    server.close(async () => {
+      await disconnectDB();
+      process.exit(1);
+    });
+  });
+};
+
+startServer();

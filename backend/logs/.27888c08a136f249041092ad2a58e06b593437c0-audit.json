@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\ASUS\\Documents\\ai-study-assistant\\backend\\logs\\.27888c08a136f249041092ad2a58e06b593437c0-audit.json",
+    "files": [
+        {
+            "date": 1779350856385,
+            "name": "C:\\Users\\ASUS\\Documents\\ai-study-assistant\\backend\\logs\\combined-2026-05-21.log",
+            "hash": "b3b92cc7fd253e40644f43b4f3690554782ba40f7e38f72bf5eccf0067f5c908"
+        }
+    ],
+    "hashType": "sha256"
+}
