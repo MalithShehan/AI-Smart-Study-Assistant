@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,334 +6,307 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
-  Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { Card } from '../components/Card';
-import { Badge, ProgressBar, Avatar } from '../components/UI';
-import { Colors, Fonts, BorderRadius, Shadow } from '../theme';
+import { Colors, Fonts, Shadow } from '../theme';
 
 const { width } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const quickActions = [
-  { icon: 'chatbubble-ellipses', label: 'Ask AI', screen: 'AskQuestion', color: Colors.primary, bg: '#FFF3E8' },
-  { icon: 'scan', label: 'Scanner', screen: 'AIScanner', color: Colors.purple, bg: '#F3F0FF' },
-  { icon: 'document-text', label: 'Summary', screen: 'AISummary', color: Colors.success, bg: '#E8F5E9' },
-  { icon: 'trophy', label: 'Quiz', screen: 'QuizGenerator', color: Colors.warning, bg: '#FEF3C7' },
+  {
+    icon: 'scan-outline' as const,
+    label: 'AI Scanner',
+    sub: 'Scan Notes',
+    screen: 'AIScanner' as keyof RootStackParamList,
+    color: '#FF7A00',
+    bg: '#FFF3E8',
+  },
+  {
+    icon: 'help-circle-outline' as const,
+    label: 'Ask Question',
+    sub: 'Get Answers',
+    screen: 'AskQuestion' as keyof RootStackParamList,
+    color: '#06B6D4',
+    bg: '#E0F7FA',
+  },
+  {
+    icon: 'clipboard-outline' as const,
+    label: 'AI Quiz',
+    sub: 'Generate Quiz',
+    screen: 'QuizGenerator' as keyof RootStackParamList,
+    color: '#8B5CF6',
+    bg: '#F3F0FF',
+  },
+  {
+    icon: 'library-outline' as const,
+    label: 'Library',
+    sub: 'Saved Notes',
+    screen: 'Library' as keyof RootStackParamList,
+    color: '#4CAF50',
+    bg: '#E8F5E9',
+  },
 ];
 
-const subjectCards = [
-  { subject: 'Mathematics', topic: 'Calculus & Integration', progress: 0.72, color: '#FF7A00', icon: '📐' },
-  { subject: 'Physics', topic: 'Quantum Mechanics', progress: 0.45, color: '#8B5CF6', icon: '⚛️' },
-  { subject: 'Chemistry', topic: 'Organic Chemistry', progress: 0.88, color: '#4CAF50', icon: '🧪' },
-  { subject: 'Biology', topic: 'Cell Division & DNA', progress: 0.33, color: '#F59E0B', icon: '🧬' },
+const recentActivities = [
+  { id: '1', title: 'Photosynthesis Notes', sub: 'AI Summary • 2m ago', icon: 'document-text' as const, color: '#FF7A00' },
+  { id: '2', title: 'Quadratic Equations Quiz', sub: 'Quiz • 19m ago', icon: 'clipboard' as const, color: '#8B5CF6' },
+  { id: '3', title: 'History Ch.5 Notes', sub: 'AI Summary • 1h ago', icon: 'document-text' as const, color: '#4CAF50' },
 ];
 
-const recentTopics = [
-  { label: 'Derivatives', count: 12 },
-  { label: 'Newton\'s Laws', count: 8 },
-  { label: 'Photosynthesis', count: 5 },
-  { label: 'Algebra', count: 15 },
+const moreFeatures = [
+  { icon: 'calendar-outline' as const, label: 'Timetable', color: '#FF7A00', screen: 'Timetable' as keyof RootStackParamList },
+  { icon: 'bar-chart-outline' as const, label: 'Analytics', color: '#06B6D4', screen: 'Home' as keyof RootStackParamList },
+  { icon: 'reader-outline' as const, label: 'Summary', color: '#8B5CF6', screen: 'AISummary' as keyof RootStackParamList },
+  { icon: 'notifications-outline' as const, label: 'Reminders', color: '#EF4444', screen: 'Notifications' as keyof RootStackParamList },
 ];
+
+const CARD_GAP = 12;
+const CARD_WIDTH = (width - 40 - CARD_GAP) / 2;
 
 export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const headerOpacity = scrollY.interpolate({ inputRange: [0, 80], outputRange: [0, 1], extrapolate: 'clamp' });
 
   return (
-    <View style={styles.container}>
-      {/* Sticky mini-header on scroll */}
-      <Animated.View style={[styles.stickyHeader, { opacity: headerOpacity, paddingTop: insets.top }]}>
-        <Text style={styles.stickyTitle}>StudyAI</Text>
-      </Animated.View>
-
-      <Animated.ScrollView
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <ScrollView
         showsVerticalScrollIndicator={false}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-        scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
       >
-        {/* Hero gradient header */}
-        <LinearGradient
-          colors={['#FF7A00', '#FF9A3C']}
-          style={[styles.heroGradient, { paddingTop: insets.top + 16 }]}
-        >
-          {/* Top row */}
-          <View style={styles.topRow}>
-            <View>
-              <Text style={styles.greetingSmall}>Good morning! ☀️</Text>
-              <Text style={styles.greetingName}>Malith Shehan</Text>
-            </View>
-            <View style={styles.topRowRight}>
-              <TouchableOpacity
-                style={styles.notifBtn}
-                onPress={() => navigation.navigate('Notifications')}
-              >
-                <Ionicons name="notifications-outline" size={22} color={Colors.white} />
-                <View style={styles.notifDot} />
-              </TouchableOpacity>
-              <Avatar initials="MS" bgColor="rgba(255,255,255,0.25)" color={Colors.white} size={42} />
-            </View>
+        {/* ── Top bar ────────────────────────────────────────── */}
+        <View style={styles.topBar}>
+          <View>
+            <Text style={styles.greeting}>Hi, Student! 👋</Text>
+            <Text style={styles.greetingSub}>What do you want to learn today?</Text>
           </View>
-
-          {/* Search bar */}
           <TouchableOpacity
-            style={styles.searchBar}
-            onPress={() => navigation.navigate('AskQuestion')}
-            activeOpacity={0.9}
+            style={styles.notifBtn}
+            onPress={() => navigation.navigate('Notifications')}
+            activeOpacity={0.8}
           >
-            <Ionicons name="search-outline" size={18} color={Colors.textLight} />
-            <Text style={styles.searchPlaceholder}>Ask anything... e.g. "Explain Newton's laws"</Text>
-            <View style={styles.searchAIBadge}>
-              <Text style={styles.searchAIText}>AI</Text>
-            </View>
+            <Ionicons name="notifications-outline" size={22} color={Colors.textDark} />
+            <View style={styles.notifDot} />
           </TouchableOpacity>
-
-          {/* Stats row */}
-          <View style={styles.statsRow}>
-            {[
-              { label: 'Day Streak', value: '7 🔥', color: '#FFE0B2' },
-              { label: 'Topics Done', value: '42', color: '#FFE0B2' },
-              { label: 'Quiz Score', value: '94%', color: '#FFE0B2' },
-            ].map((stat, i) => (
-              <View key={i} style={styles.statItem}>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
-
-        {/* Content */}
-        <View style={styles.content}>
-          {/* Quick Actions */}
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            {quickActions.map((action, i) => (
-              <TouchableOpacity
-                key={i}
-                style={[styles.quickActionCard, { backgroundColor: action.bg }]}
-                onPress={() => navigation.navigate(action.screen as any)}
-                activeOpacity={0.85}
-              >
-                <View style={[styles.quickActionIcon, { backgroundColor: action.color }]}>
-                  <Ionicons name={action.icon as any} size={22} color={Colors.white} />
-                </View>
-                <Text style={[styles.quickActionLabel, { color: action.color }]}>{action.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Daily Challenge */}
-          <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('QuizGenerator')}>
-            <LinearGradient
-              colors={['#8B5CF6', '#A78BFA']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.challengeCard}
-            >
-              <View style={{ flex: 1 }}>
-                <Badge label="Daily Challenge" bgColor="rgba(255,255,255,0.25)" color={Colors.white} size="sm" />
-                <Text style={styles.challengeTitle}>5-Minute{'\n'}Math Quiz 🧠</Text>
-                <Text style={styles.challengeSub}>10 questions • Mixed difficulty</Text>
-              </View>
-              <View style={styles.challengeCircle}>
-                <Text style={styles.challengeScore}>94</Text>
-                <Text style={styles.challengeScoreLabel}>avg</Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* Continue Studying */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Continue Studying</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Library')}>
-              <Text style={styles.seeAll}>See all</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 14 }}>
-            {subjectCards.map((card, i) => (
-              <TouchableOpacity key={i} style={[styles.subjectCard, { borderTopColor: card.color }]} activeOpacity={0.88}>
-                <View style={styles.subjectCardTop}>
-                  <Text style={styles.subjectEmoji}>{card.icon}</Text>
-                  <View style={[styles.subjectColorDot, { backgroundColor: card.color }]} />
-                </View>
-                <Text style={styles.subjectName}>{card.subject}</Text>
-                <Text style={styles.subjectTopic} numberOfLines={1}>{card.topic}</Text>
-                <View style={{ marginTop: 12 }}>
-                  <View style={styles.progressRow}>
-                    <Text style={styles.progressText}>{Math.round(card.progress * 100)}%</Text>
-                  </View>
-                  <ProgressBar progress={card.progress} color={card.color} height={5} />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Recent Topics */}
-          <Text style={[styles.sectionTitle, { marginTop: 24 }]}>Recent Topics</Text>
-          <View style={styles.topicsRow}>
-            {recentTopics.map((t, i) => (
-              <TouchableOpacity
-                key={i}
-                style={styles.topicPill}
-                onPress={() => navigation.navigate('AskQuestion')}
-              >
-                <Text style={styles.topicLabel}>{t.label}</Text>
-                <View style={styles.topicCount}>
-                  <Text style={styles.topicCountText}>{t.count}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* AI Tip */}
-          <Card style={styles.aiTipCard}>
-            <View style={{ flexDirection: 'row', gap: 14, alignItems: 'flex-start' }}>
-              <View style={styles.aiTipIcon}>
-                <Ionicons name="bulb" size={22} color={Colors.warning} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.aiTipTitle}>AI Study Tip 💡</Text>
-                <Text style={styles.aiTipText}>
-                  Spaced repetition increases retention by up to 200%. Try reviewing your notes every 24 hours for best results.
-                </Text>
-              </View>
-            </View>
-          </Card>
         </View>
-      </Animated.ScrollView>
+
+        {/* ── Search bar ─────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.searchBar}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('AskQuestion')}
+        >
+          <Ionicons name="search-outline" size={18} color={Colors.textLight} />
+          <Text style={styles.searchPlaceholder}>Search for anything...</Text>
+        </TouchableOpacity>
+
+        {/* ── AI Assistant card ──────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.aiCard}
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('AskQuestion')}
+        >
+          <View style={styles.aiCardLeft}>
+            <View style={styles.aiCardBadge}>
+              <Text style={styles.aiCardBadgeText}>✨ AI Assistant</Text>
+            </View>
+            <Text style={styles.aiCardTitle}>Ask anything, get{'\n'}answers instantly!</Text>
+            <View style={styles.aiCardArrow}>
+              <Text style={styles.aiCardArrowText}>Try Now</Text>
+              <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+            </View>
+          </View>
+          <View style={styles.aiCardRight}>
+            <View style={styles.robotOuter}>
+              <View style={styles.robotInner}>
+                <Text style={styles.robotEmoji}>🤖</Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* ── Quick Actions ──────────────────────────────────── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+        </View>
+        <View style={styles.quickGrid}>
+          {quickActions.map((action, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[styles.quickCard, { backgroundColor: action.bg }]}
+              activeOpacity={0.82}
+              onPress={() => navigation.navigate(action.screen as any)}
+            >
+              <View style={[styles.quickIconWrap, { backgroundColor: action.color }]}>
+                <Ionicons name={action.icon} size={22} color={Colors.white} />
+              </View>
+              <Text style={[styles.quickLabel, { color: action.color }]}>{action.label}</Text>
+              <Text style={styles.quickSub}>{action.sub}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Recent Activity ─────────────────────────────────── */}
+        <View style={[styles.sectionHeader, { marginTop: 8 }]}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Library')}>
+            <Text style={styles.seeAll}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.activityCard}>
+          {recentActivities.map((item, i) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.activityRow, i < recentActivities.length - 1 && styles.activityBorder]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.activityIcon, { backgroundColor: item.color + '20' }]}>
+                <Ionicons name={item.icon} size={18} color={item.color} />
+              </View>
+              <View style={styles.activityBody}>
+                <Text style={styles.activityTitle} numberOfLines={1}>{item.title}</Text>
+                <Text style={styles.activitySub}>{item.sub}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── More Features ───────────────────────────────────── */}
+        <View style={[styles.sectionHeader, { marginTop: 8 }]}>
+          <Text style={styles.sectionTitle}>More Features</Text>
+        </View>
+        <View style={styles.featureRow}>
+          {moreFeatures.map((feat, i) => (
+            <TouchableOpacity
+              key={i}
+              style={styles.featureItem}
+              activeOpacity={0.82}
+              onPress={() => navigation.navigate(feat.screen as any)}
+            >
+              <View style={[styles.featureIcon, { backgroundColor: feat.color + '15' }]}>
+                <Ionicons name={feat.icon} size={24} color={feat.color} />
+              </View>
+              <Text style={styles.featureLabel}>{feat.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  stickyHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+  container: { flex: 1, backgroundColor: Colors.white },
+  scrollContent: { paddingHorizontal: 20 },
+
+  // Top bar
+  topBar: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    paddingTop: 16, paddingBottom: 20,
   },
-  stickyTitle: { fontFamily: Fonts.bold, fontSize: 18, color: Colors.textDark },
-  heroGradient: { paddingHorizontal: 20, paddingBottom: 32 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greetingSmall: { fontFamily: Fonts.regular, fontSize: 14, color: 'rgba(255,255,255,0.85)' },
-  greetingName: { fontFamily: Fonts.bold, fontSize: 22, color: Colors.white },
-  topRowRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  greeting: { fontFamily: Fonts.bold, fontSize: 22, color: Colors.textDark },
+  greetingSub: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.textGray, marginTop: 3 },
   notifBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center', justifyContent: 'center',
   },
-  notifDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.danger, borderWidth: 1.5, borderColor: Colors.primary },
+  notifDot: {
+    position: 'absolute', top: 10, right: 10,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: Colors.danger,
+    borderWidth: 1.5, borderColor: Colors.white,
+  },
+
+  // Search
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    height: 52,
-    gap: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 14, paddingHorizontal: 16, height: 50,
     marginBottom: 20,
-    ...Shadow.small,
   },
   searchPlaceholder: { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: Colors.textLight },
-  searchAIBadge: { backgroundColor: Colors.primaryLight, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  searchAIText: { fontFamily: Fonts.bold, fontSize: 11, color: Colors.primary },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  statItem: { flex: 1, alignItems: 'center' },
-  statValue: { fontFamily: Fonts.bold, fontSize: 20, color: Colors.white },
-  statLabel: { fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  content: { padding: 20 },
-  sectionTitle: { fontFamily: Fonts.bold, fontSize: 18, color: Colors.textDark, marginBottom: 14 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, marginTop: 24 },
+
+  // AI Assistant card
+  aiCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF8F0',
+    borderRadius: 20, padding: 20,
+    marginBottom: 28,
+    borderWidth: 1, borderColor: '#FFE5CC',
+    ...Shadow.small,
+  },
+  aiCardLeft: { flex: 1, gap: 8 },
+  aiCardBadge: {
+    alignSelf: 'flex-start', backgroundColor: Colors.primary,
+    borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
+  },
+  aiCardBadgeText: { fontFamily: Fonts.semiBold, fontSize: 11, color: Colors.white },
+  aiCardTitle: { fontFamily: Fonts.bold, fontSize: 16, color: Colors.textDark, lineHeight: 24 },
+  aiCardArrow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  aiCardArrowText: { fontFamily: Fonts.semiBold, fontSize: 13, color: Colors.primary },
+  aiCardRight: { alignItems: 'center', justifyContent: 'center', paddingLeft: 12 },
+  robotOuter: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: 'rgba(255,122,0,0.12)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  robotInner: {
+    width: 60, height: 60, borderRadius: 30,
+    backgroundColor: 'rgba(255,122,0,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  robotEmoji: { fontSize: 32 },
+
+  // Section header
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  sectionTitle: { fontFamily: Fonts.bold, fontSize: 17, color: Colors.textDark },
   seeAll: { fontFamily: Fonts.medium, fontSize: 14, color: Colors.primary },
-  quickActionsGrid: { flexDirection: 'row', gap: 12, marginBottom: 20, flexWrap: 'wrap' },
-  quickActionCard: {
-    flex: 1,
-    minWidth: (width - 64) / 2 - 6,
-    borderRadius: 18,
-    padding: 16,
-    alignItems: 'center',
-    gap: 10,
+
+  // Quick actions grid
+  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP, marginBottom: 28 },
+  quickCard: {
+    width: CARD_WIDTH, borderRadius: 18, padding: 16, gap: 8,
     ...Shadow.small,
   },
-  quickActionIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  quickActionLabel: { fontFamily: Fonts.semiBold, fontSize: 13 },
-  challengeCard: {
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    ...Shadow.medium,
+  quickIconWrap: {
+    width: 50, height: 50, borderRadius: 15,
+    alignItems: 'center', justifyContent: 'center',
   },
-  challengeTitle: { fontFamily: Fonts.bold, fontSize: 20, color: Colors.white, marginTop: 8, marginBottom: 6, lineHeight: 28 },
-  challengeSub: { fontFamily: Fonts.regular, fontSize: 13, color: 'rgba(255,255,255,0.8)' },
-  challengeCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
+  quickLabel: { fontFamily: Fonts.bold, fontSize: 14 },
+  quickSub: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray },
+
+  // Recent activity
+  activityCard: {
+    backgroundColor: Colors.white, borderRadius: 18,
+    borderWidth: 1, borderColor: Colors.border,
+    overflow: 'hidden', marginBottom: 28, ...Shadow.small,
   },
-  challengeScore: { fontFamily: Fonts.bold, fontSize: 26, color: Colors.white },
-  challengeScoreLabel: { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.8)' },
-  subjectCard: {
-    width: 160,
-    backgroundColor: Colors.white,
-    borderRadius: 18,
-    padding: 16,
-    borderTopWidth: 4,
-    ...Shadow.small,
+  activityRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 16, paddingVertical: 14,
   },
-  subjectCardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  subjectEmoji: { fontSize: 28 },
-  subjectColorDot: { width: 10, height: 10, borderRadius: 5 },
-  subjectName: { fontFamily: Fonts.bold, fontSize: 15, color: Colors.textDark, marginBottom: 4 },
-  subjectTopic: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray },
-  progressRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 },
-  progressText: { fontFamily: Fonts.semiBold, fontSize: 12, color: Colors.textGray },
-  topicsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  topicPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.full,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
+  activityBorder: { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  activityIcon: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
   },
-  topicLabel: { fontFamily: Fonts.medium, fontSize: 14, color: Colors.textDark },
-  topicCount: { backgroundColor: Colors.primaryLight, borderRadius: 10, width: 22, height: 22, alignItems: 'center', justifyContent: 'center' },
-  topicCountText: { fontFamily: Fonts.bold, fontSize: 11, color: Colors.primary },
-  aiTipCard: { backgroundColor: '#FFFBF0', borderWidth: 1, borderColor: '#FEF3C7' },
-  aiTipIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.warningLight, alignItems: 'center', justifyContent: 'center' },
-  aiTipTitle: { fontFamily: Fonts.bold, fontSize: 15, color: Colors.textDark, marginBottom: 6 },
-  aiTipText: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.textGray, lineHeight: 20 },
+  activityBody: { flex: 1 },
+  activityTitle: { fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.textDark },
+  activitySub: { fontFamily: Fonts.regular, fontSize: 12, color: Colors.textGray, marginTop: 2 },
+
+  // More features
+  featureRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  featureItem: { alignItems: 'center', gap: 8, flex: 1 },
+  featureIcon: {
+    width: 56, height: 56, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  featureLabel: { fontFamily: Fonts.medium, fontSize: 12, color: Colors.textDark, textAlign: 'center' },
 });

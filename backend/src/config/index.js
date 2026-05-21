@@ -82,6 +82,11 @@ const config = {
     timeout: parseInt(process.env.AI_TIMEOUT_MS, 10) || 30000,
     retryAttempts: parseInt(process.env.AI_RETRY_ATTEMPTS, 10) || 3,
   },
+
+  firebase: {
+    // Path to your Firebase service account JSON key file
+    serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '',
+  },
 };
 
 module.exports = config;

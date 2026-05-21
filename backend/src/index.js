@@ -1,9 +1,13 @@
 const app = require('./app');
 const config = require('./config');
 const { connectDB, disconnectDB } = require('./config/database');
+const { startReminderCron } = require('./services/timetableService');
 
 const startServer = async () => {
   await connectDB();
+
+  // Start cron-based reminder scheduler (timetable + exam notifications)
+  startReminderCron();
 
   const server = app.listen(config.port, () => {
     console.log(`[${config.env}] Server running on http://localhost:${config.port}`);
