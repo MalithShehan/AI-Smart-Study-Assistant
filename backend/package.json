@@ -4,21 +4,32 @@
   "description": "Backend API for AI Smart Study Assistant",
   "main": "src/index.js",
   "scripts": {
-    "start": "NODE_ENV=production node src/index.js",
+    "start": "node src/index.js",
+    "start:prod": "NODE_ENV=production node src/index.js",
     "dev": "nodemon src/index.js",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:reload": "pm2 reload ai-study-api",
+    "pm2:stop": "pm2 stop ai-study-api",
+    "pm2:logs": "pm2 logs ai-study-api",
+    "docker:build": "docker build -t ai-study-api .",
+    "docker:run": "docker compose up -d",
+    "docker:stop": "docker compose down",
     "lint": "eslint src/**/*.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.10.0",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "crypto-js": "^4.2.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.3.1",
     "express-validator": "^7.1.0",
     "firebase-admin": "^13.10.0",
     "helmet": "^7.1.0",
+    "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.2",
     "morgan": "^1.10.0",
@@ -26,7 +37,12 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.7",
     "openai": "^6.38.0",
-    "pdf-parse": "^2.4.5"
+    "pdf-parse": "^2.4.5",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

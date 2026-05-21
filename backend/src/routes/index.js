@@ -10,6 +10,7 @@ const ocrRoutes = require('./ocr');
 const timetableRoutes = require('./timetable');
 const notificationRoutes = require('./notifications');
 const analyticsRoutes = require('./analytics');
+const adminRoutes = require('./admin');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -20,5 +21,6 @@ router.use('/ocr', ocrRoutes);
 router.use('/timetable', timetableRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/analytics', analyticsRoutes);
+router.use('/admin', adminRoutes);
 
 module.exports = router;

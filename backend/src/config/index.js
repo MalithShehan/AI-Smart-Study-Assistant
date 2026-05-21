@@ -87,6 +87,19 @@ const config = {
     // Path to your Firebase service account JSON key file
     serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '',
   },
+
+  swagger: {
+    enabled: process.env.ENABLE_SWAGGER !== 'false',
+  },
+
+  logging: {
+    level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+  },
+
+  admin: {
+    // Comma-separated list of emails that are automatically given admin role on register
+    seedEmails: (process.env.ADMIN_SEED_EMAILS || '').split(',').filter(Boolean),
+  },
 };
 
 module.exports = config;
