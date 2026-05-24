@@ -7,6 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,23 +17,37 @@ import { RootStackParamList } from '../types';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { Colors, Fonts, Spacing } from '../theme';
+import { useAuth } from '../context/AuthContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { register } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    if (!name.trim() || !email.trim() || !password) {
+      Alert.alert('Validation', 'Please fill in all fields.');
+      return;
+    }
+    if (password !== confirm) {
+      Alert.alert('Validation', 'Passwords do not match.');
+      return;
+    }
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await register(name.trim(), email.trim(), password);
       navigation.replace('MainTabs');
-    }, 1500);
+    } catch (err: any) {
+      Alert.alert('Registration Failed', err.message || 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

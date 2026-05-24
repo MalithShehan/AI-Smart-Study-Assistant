@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +14,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { Colors, Fonts, Shadow } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { apiGet } from '../api/client';
 
 const { width } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -52,11 +55,33 @@ const quickActions = [
   },
 ];
 
-const recentActivities = [
-  { id: '1', title: 'Photosynthesis Notes', sub: 'AI Summary • 2m ago', icon: 'document-text' as const, color: '#FF7A00' },
-  { id: '2', title: 'Quadratic Equations Quiz', sub: 'Quiz • 19m ago', icon: 'clipboard' as const, color: '#8B5CF6' },
-  { id: '3', title: 'History Ch.5 Notes', sub: 'AI Summary • 1h ago', icon: 'document-text' as const, color: '#4CAF50' },
-];
+const ACTIVITY_CONFIG: Record<string, { icon: React.ComponentProps<typeof Ionicons>['name']; color: string }> = {
+  study_session: { icon: 'time-outline', color: '#FF7A00' },
+  note_scan:     { icon: 'scan-outline', color: '#06B6D4' },
+  quiz_attempt:  { icon: 'clipboard-outline', color: '#8B5CF6' },
+  ai_summary:    { icon: 'document-text-outline', color: '#4CAF50' },
+  ai_question:   { icon: 'help-circle-outline', color: '#06B6D4' },
+  note_created:  { icon: 'document-text-outline', color: '#FF7A00' },
+  note_updated:  { icon: 'create-outline', color: '#F59E0B' },
+  note_deleted:  { icon: 'trash-outline', color: '#EF4444' },
+};
+
+const formatRelativeTime = (isoDate: string): string => {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+};
+
+interface ActivityItem {
+  _id: string;
+  type: string;
+  subject?: string;
+  createdAt: string;
+}
 
 const moreFeatures = [
   { icon: 'calendar-outline' as const, label: 'Timetable', color: '#FF7A00', screen: 'Timetable' as keyof RootStackParamList },
@@ -71,6 +96,25 @@ const CARD_WIDTH = (width - 40 - CARD_GAP) / 2;
 export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const { user } = useAuth();
+
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+
+  const fetchActivities = useCallback(async () => {
+    try {
+      const res = await apiGet('/analytics/activities?limit=3');
+      setActivities(res.data?.activities ?? res.data ?? []);
+    } catch {
+      setActivities([]);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [fetchActivities]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -81,7 +125,7 @@ export const HomeScreen: React.FC = () => {
         {/* ── Top bar ────────────────────────────────────────── */}
         <View style={styles.topBar}>
           <View>
-            <Text style={styles.greeting}>Hi, Student! 👋</Text>
+            <Text style={styles.greeting}>Hi, {user?.name ?? 'Student'}! 👋</Text>
             <Text style={styles.greetingSub}>What do you want to learn today?</Text>
           </View>
           <TouchableOpacity
@@ -159,22 +203,40 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         <View style={styles.activityCard}>
-          {recentActivities.map((item, i) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.activityRow, i < recentActivities.length - 1 && styles.activityBorder]}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.activityIcon, { backgroundColor: item.color + '20' }]}>
-                <Ionicons name={item.icon} size={18} color={item.color} />
-              </View>
-              <View style={styles.activityBody}>
-                <Text style={styles.activityTitle} numberOfLines={1}>{item.title}</Text>
-                <Text style={styles.activitySub}>{item.sub}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
-            </TouchableOpacity>
-          ))}
+          {activitiesLoading ? (
+            <View style={styles.activityRow}>
+              <ActivityIndicator size="small" color={Colors.primary} />
+              <Text style={[styles.activitySub, { marginLeft: 10 }]}>Loading activity…</Text>
+            </View>
+          ) : activities.length === 0 ? (
+            <View style={styles.activityRow}>
+              <Ionicons name="time-outline" size={20} color={Colors.textLight} />
+              <Text style={[styles.activitySub, { marginLeft: 10 }]}>No activity yet. Start learning!</Text>
+            </View>
+          ) : (
+            activities.map((item, i) => {
+              const cfg = ACTIVITY_CONFIG[item.type] ?? { icon: 'ellipse-outline' as const, color: Colors.textGray };
+              const label = item.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+              return (
+                <TouchableOpacity
+                  key={item._id}
+                  style={[styles.activityRow, i < activities.length - 1 && styles.activityBorder]}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.activityIcon, { backgroundColor: cfg.color + '20' }]}>
+                    <Ionicons name={cfg.icon} size={18} color={cfg.color} />
+                  </View>
+                  <View style={styles.activityBody}>
+                    <Text style={styles.activityTitle} numberOfLines={1}>{label}</Text>
+                    <Text style={styles.activitySub}>
+                      {item.subject ? `${item.subject} • ` : ''}{formatRelativeTime(item.createdAt)}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
 
         {/* ── More Features ───────────────────────────────────── */}
