@@ -1,12 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const aiController = require('../controllers/aiController');
+const { protect } = require('../middlewares/auth');
+const { aiLimiter } = require('../middlewares/rateLimiter');
 const {
   validateGenerateQuiz,
   validateSummarize,
   validateScanSummarize,
   validateAskQuestion,
 } = require('../validators/aiValidator');
+
+// All AI endpoints require authentication and apply a per-minute rate limit
+router.use(protect, aiLimiter);
 
 // Summarize typed/pasted notes
 router.post('/summarize', validateSummarize, aiController.summarizeNotes);
