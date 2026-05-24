@@ -1,44 +1,23 @@
-/**
- * Study session business logic.
- * Uses an in-memory store — swap out for a real DB (MongoDB, PostgreSQL, etc.)
- * by replacing these functions without touching the controllers or routes.
- */
+const Session = require('../models/Session');
+const ApiError = require('../utils/ApiError');
 
-let sessions = [];
-let nextId = 1;
+const getAllSessions = async (userId) => {
+  return Session.find({ user: userId }).sort({ createdAt: -1 });
+};
 
-const getAllSessions = async () => sessions;
+const createSession = async (userId, { title, subject, notes }) => {
+  return Session.create({ user: userId, title, subject, notes: notes || '' });
+};
 
-const createSession = async ({ title, subject, notes }) => {
-  const session = {
-    id: nextId++,
-    title,
-    subject,
-    notes: notes || '',
-    createdAt: new Date().toISOString(),
-  };
-  sessions.push(session);
+const getSessionById = async (userId, id) => {
+  const session = await Session.findOne({ _id: id, user: userId });
+  if (!session) throw ApiError.notFound('Session not found');
   return session;
 };
 
-const getSessionById = async (id) => {
-  const session = sessions.find((s) => s.id === parseInt(id, 10));
-  if (!session) {
-    const err = new Error('Session not found');
-    err.statusCode = 404;
-    throw err;
-  }
-  return session;
-};
-
-const deleteSession = async (id) => {
-  const index = sessions.findIndex((s) => s.id === parseInt(id, 10));
-  if (index === -1) {
-    const err = new Error('Session not found');
-    err.statusCode = 404;
-    throw err;
-  }
-  sessions.splice(index, 1);
+const deleteSession = async (userId, id) => {
+  const session = await Session.findOneAndDelete({ _id: id, user: userId });
+  if (!session) throw ApiError.notFound('Session not found');
 };
 
 module.exports = { getAllSessions, createSession, getSessionById, deleteSession };
