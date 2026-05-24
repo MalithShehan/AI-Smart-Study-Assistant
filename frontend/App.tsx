@@ -11,6 +11,7 @@ import {
 } from '@expo-google-fonts/poppins';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/context/AuthContext';
 import { Colors } from './src/theme';
 
 export default function App() {
@@ -32,8 +33,10 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="light" backgroundColor={Colors.primary} />
-        <AppNavigator />
+        <AuthProvider>
+          <StatusBar style="light" backgroundColor={Colors.primary} />
+          <AppNavigator />
+        </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
