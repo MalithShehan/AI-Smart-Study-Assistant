@@ -12,11 +12,12 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  if (config.upload.allowedMimeTypes.includes(file.mimetype)) {
+  const allowed = config.upload.allowedImageTypes;
+  if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
     const err = new Error(
-      `Invalid file type. Allowed: ${config.upload.allowedMimeTypes.join(', ')}`
+      `Invalid file type. Allowed: ${allowed.join(', ')}`
     );
     err.statusCode = 400;
     cb(err, false);
