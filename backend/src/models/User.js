@@ -90,6 +90,13 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
+    // ── FCM tokens for push notifications (supports multiple devices)
+    fcmTokens: {
+      type: [String],
+      default: [],
+      select: false,
+    },
+
     // ── OAuth providers
     oauth: {
       google: {
