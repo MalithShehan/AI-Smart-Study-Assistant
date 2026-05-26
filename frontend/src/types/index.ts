@@ -9,8 +9,10 @@ export type RootStackParamList = {
   AskQuestion: undefined;
   AISummary: { text?: string };
   QuizGenerator: undefined;
+  QuizResult: { quizId: string; timeTaken: number };
   Library: undefined;
   Profile: undefined;
+  Settings: undefined;
   AIScanner: undefined;
   Timetable: undefined;
   Notifications: undefined;

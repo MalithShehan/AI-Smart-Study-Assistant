@@ -22,6 +22,8 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { AIScannerScreen } from '../screens/AIScannerScreen';
 import { TimetableScreen } from '../screens/TimetableScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { QuizResultScreen } from '../screens/QuizResultScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -111,7 +113,9 @@ export function AppNavigator() {
         <Stack.Screen name="AIScanner" component={AIScannerScreen} />
         <Stack.Screen name="Timetable" component={TimetableScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        {/* Aliases for standalone access */}
+        <Stack.Screen name="QuizResult" component={QuizResultScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        {/* Aliases for standalone access */
         <Stack.Screen name="QuizGenerator" component={QuizGeneratorScreen} />
         <Stack.Screen name="Library" component={LibraryScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />

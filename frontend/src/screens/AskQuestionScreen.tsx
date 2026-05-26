@@ -19,6 +19,7 @@ import { RootStackParamList, Message } from '../types';
 import { Input } from '../components/Input';
 import { Card } from '../components/Card';
 import { Badge } from '../components/UI';
+import { AIVoicePlayer } from '../components/AIVoicePlayer';
 import { Colors, Fonts, BorderRadius, Shadow } from '../theme';
 
 const { width } = Dimensions.get('window');
@@ -139,20 +140,25 @@ export const AskQuestionScreen: React.FC = () => {
                   {msg.content}
                 </Text>
                 {msg.role === 'assistant' && (
-                  <View style={styles.messageActions}>
-                    <TouchableOpacity style={styles.messageActionBtn}>
-                      <Ionicons name="copy-outline" size={14} color={Colors.textGray} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.messageActionBtn}>
-                      <Ionicons name="share-outline" size={14} color={Colors.textGray} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.messageActionBtn, styles.summaryBtn]}
-                      onPress={() => navigation.navigate('AISummary', { text: msg.content })}
-                    >
-                      <Text style={styles.summaryBtnText}>Summarize</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <>
+                    {/* AI Voice Player */}
+                    <AIVoicePlayer text={msg.content} voice="nova" />
+                    
+                    <View style={styles.messageActions}>
+                      <TouchableOpacity style={styles.messageActionBtn}>
+                        <Ionicons name="copy-outline" size={14} color={Colors.textGray} />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.messageActionBtn}>
+                        <Ionicons name="share-outline" size={14} color={Colors.textGray} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.messageActionBtn, styles.summaryBtn]}
+                        onPress={() => navigation.navigate('AISummary', { text: msg.content })}
+                      >
+                        <Text style={styles.summaryBtnText}>Summarize</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
                 )}
               </View>
             </View>

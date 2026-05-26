@@ -7,7 +7,10 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  RefreshControl,
+  Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +19,8 @@ import { RootStackParamList } from '../types';
 import { Colors, Fonts, Shadow } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { apiGet } from '../api/client';
+import { useHaptics } from '../hooks/useHaptics';
+import { StatCard, GradientCard } from '../components/PremiumUI';
 
 const { width } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -97,9 +102,14 @@ export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const { user } = useAuth();
+  const haptics = useHaptics();
 
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [stats, setStats] = useState({ totalStudyHours: 0, quizzesCompleted: 0, averageScore: 0 });
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = React.useRef(new Animated.Value(50)).current;
 
   const fetchActivities = useCallback(async () => {
     try {
@@ -112,66 +122,146 @@ export const HomeScreen: React.FC = () => {
     }
   }, []);
 
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await apiGet('/analytics/stats');
+      setStats(res.data ?? { totalStudyHours: 0, quizzesCompleted: 0, averageScore: 0 });
+    } catch {
+      setStats({ totalStudyHours: 0, quizzesCompleted: 0, averageScore: 0 });
+    }
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    haptics.light();
+    await Promise.all([fetchActivities(), fetchStats()]);
+    haptics.success();
+    setRefreshing(false);
+  }, [fetchActivities, fetchStats, haptics]);
+
   useEffect(() => {
     fetchActivities();
-  }, [fetchActivities]);
+    fetchStats();
+    // Entrance animation
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fetchActivities, fetchStats]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
       >
         {/* ── Top bar ────────────────────────────────────────── */}
-        <View style={styles.topBar}>
+        <Animated.View style={[styles.topBar, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <View>
             <Text style={styles.greeting}>Hi, {user?.name ?? 'Student'}! 👋</Text>
             <Text style={styles.greetingSub}>What do you want to learn today?</Text>
           </View>
           <TouchableOpacity
             style={styles.notifBtn}
-            onPress={() => navigation.navigate('Notifications')}
+            onPress={() => {
+              haptics.light();
+              navigation.navigate('Notifications');
+            }}
             activeOpacity={0.8}
           >
             <Ionicons name="notifications-outline" size={22} color={Colors.textDark} />
             <View style={styles.notifDot} />
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
         {/* ── Search bar ─────────────────────────────────────── */}
-        <TouchableOpacity
-          style={styles.searchBar}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('AskQuestion')}
-        >
-          <Ionicons name="search-outline" size={18} color={Colors.textLight} />
-          <Text style={styles.searchPlaceholder}>Search for anything...</Text>
-        </TouchableOpacity>
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          <TouchableOpacity
+            style={styles.searchBar}
+            activeOpacity={0.85}
+            onPress={() => {
+              haptics.light();
+              navigation.navigate('AskQuestion');
+            }}
+          >
+            <Ionicons name="search-outline" size={18} color={Colors.textLight} />
+            <Text style={styles.searchPlaceholder}>Search for anything...</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {/* ── Stats Cards ────────────────────────────────────── */}
+        <Animated.View style={[styles.statsRow, { opacity: fadeAnim }]}>
+          <StatCard
+            label="Study Hours"
+            value={stats.totalStudyHours}
+            icon="time-outline"
+            trend={5}
+            color="#FF7A00"
+          />
+          <StatCard
+            label="Quizzes"
+            value={stats.quizzesCompleted}
+            icon="clipboard-outline"
+            trend={12}
+            color="#8B5CF6"
+          />
+          <StatCard
+            label="Avg Score"
+            value={stats.averageScore}
+            suffix="%"
+            icon="trophy-outline"
+            trend={3}
+            color="#4CAF50"
+          />
+        </Animated.View>
 
         {/* ── AI Assistant card ──────────────────────────────── */}
-        <TouchableOpacity
-          style={styles.aiCard}
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('AskQuestion')}
-        >
-          <View style={styles.aiCardLeft}>
-            <View style={styles.aiCardBadge}>
-              <Text style={styles.aiCardBadgeText}>✨ AI Assistant</Text>
-            </View>
-            <Text style={styles.aiCardTitle}>Ask anything, get{'\n'}answers instantly!</Text>
-            <View style={styles.aiCardArrow}>
-              <Text style={styles.aiCardArrowText}>Try Now</Text>
-              <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
-            </View>
-          </View>
-          <View style={styles.aiCardRight}>
-            <View style={styles.robotOuter}>
-              <View style={styles.robotInner}>
-                <Text style={styles.robotEmoji}>🤖</Text>
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <GradientCard
+            colors={['#FF7A00', '#FFB84D']}
+            onPress={() => {
+              haptics.medium();
+              navigation.navigate('AskQuestion');
+            }}
+          >
+            <View style={styles.aiCardContent}>
+              <View style={styles.aiCardLeft}>
+                <View style={styles.aiCardBadge}>
+                  <Text style={styles.aiCardBadgeText}>✨ AI Assistant</Text>
+                </View>
+                <Text style={styles.aiCardTitle}>Ask anything, get{'\n'}answers instantly!</Text>
+                <View style={styles.aiCardArrow}>
+                  <Text style={styles.aiCardArrowText}>Try Now</Text>
+                  <Ionicons name="arrow-forward" size={14} color={Colors.white} />
+                </View>
+              </View>
+              <View style={styles.aiCardRight}>
+                <View style={styles.robotOuter}>
+                  <View style={styles.robotInner}>
+                    <Text style={styles.robotEmoji}>🤖</Text>
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
-        </TouchableOpacity>
+          </GradientCard>
+        </Animated.View>
 
         {/* ── Quick Actions ──────────────────────────────────── */}
         <View style={styles.sectionHeader}>
@@ -183,7 +273,10 @@ export const HomeScreen: React.FC = () => {
               key={i}
               style={[styles.quickCard, { backgroundColor: action.bg }]}
               activeOpacity={0.82}
-              onPress={() => navigation.navigate(action.screen as any)}
+              onPress={() => {
+                haptics.light();
+                navigation.navigate(action.screen as any);
+              }}
             >
               <View style={[styles.quickIconWrap, { backgroundColor: action.color }]}>
                 <Ionicons name={action.icon} size={22} color={Colors.white} />
@@ -295,24 +388,26 @@ const styles = StyleSheet.create({
   },
   searchPlaceholder: { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: Colors.textLight },
 
-  // AI Assistant card
-  aiCard: {
+  // Stats Row
+  statsRow: {
     flexDirection: 'row',
-    backgroundColor: '#FFF8F0',
-    borderRadius: 20, padding: 20,
-    marginBottom: 28,
-    borderWidth: 1, borderColor: '#FFE5CC',
-    ...Shadow.small,
+    gap: 10,
+    marginBottom: 20,
+  },
+
+  // AI Assistant card
+  aiCardContent: {
+    flexDirection: 'row',
   },
   aiCardLeft: { flex: 1, gap: 8 },
   aiCardBadge: {
-    alignSelf: 'flex-start', backgroundColor: Colors.primary,
+    alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.3)',
     borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4,
   },
   aiCardBadgeText: { fontFamily: Fonts.semiBold, fontSize: 11, color: Colors.white },
-  aiCardTitle: { fontFamily: Fonts.bold, fontSize: 16, color: Colors.textDark, lineHeight: 24 },
+  aiCardTitle: { fontFamily: Fonts.bold, fontSize: 16, color: Colors.white, lineHeight: 24 },
   aiCardArrow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  aiCardArrowText: { fontFamily: Fonts.semiBold, fontSize: 13, color: Colors.primary },
+  aiCardArrowText: { fontFamily: Fonts.semiBold, fontSize: 13, color: Colors.white },
   aiCardRight: { alignItems: 'center', justifyContent: 'center', paddingLeft: 12 },
   robotOuter: {
     width: 80, height: 80, borderRadius: 40,
