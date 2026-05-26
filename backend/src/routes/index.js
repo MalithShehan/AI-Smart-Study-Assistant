@@ -13,6 +13,8 @@ const analyticsRoutes = require('./analytics');
 const adminRoutes = require('./admin');
 const resultsRoutes = require('./results');
 const papersRoutes = require('./papers');
+const gamificationRoutes = require('./gamification');
+const studyPlansRoutes = require('./studyPlans');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -26,5 +28,7 @@ router.use('/analytics', analyticsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/results', resultsRoutes);
 router.use('/papers', papersRoutes);
+router.use('/gamification', gamificationRoutes);
+router.use('/study-plans', studyPlansRoutes);
 
 module.exports = router;

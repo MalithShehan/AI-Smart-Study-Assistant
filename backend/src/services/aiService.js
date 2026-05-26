@@ -429,6 +429,149 @@ function _buildAnalyticsSummary(analytics) {
   return summary;
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// AI STUDY PLAN GENERATOR
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate personalized AI study plan
+ * @param {Object} params
+ * @param {Array<string>} params.subjects - Subjects to cover
+ * @param {number} params.studyHours - Available study hours
+ * @param {Array<string>} params.focusAreas - Areas needing focus
+ * @param {string} params.preferredTime - 'morning' | 'afternoon' | 'evening'
+ * @returns {Promise<Object>} Study plan with tasks
+ */
+async function generateStudyPlan({ subjects, studyHours, focusAreas, preferredTime }) {
+  const client = getClient();
+  
+  const prompt = `You are an expert AI study planner. Create a personalized study plan.
+
+**Requirements:**
+- Subjects: ${subjects.join(', ') || 'General'}
+- Available Study Time: ${studyHours} hours
+- Focus Areas: ${focusAreas.join(', ') || 'Balanced learning'}
+- Preferred Time: ${preferredTime}
+
+**Instructions:**
+1. Create a balanced study plan with specific tasks
+2. Include breaks every 60-90 minutes
+3. Mix different types of activities (reading, practice, quizzes, revision)
+4. Assign realistic durations to each task
+5. Prioritize focus areas
+
+**Response Format (JSON):**
+{
+  "title": "Study Plan Title",
+  "summary": "Brief overview of the plan",
+  "motivationalMessage": "Encouraging message for the student",
+  "tasks": [
+    {
+      "title": "Task title",
+      "subject": "Subject name",
+      "duration": 45,
+      "priority": "high|medium|low",
+      "type": "revision|practice|quiz|reading|video|break",
+      "description": "What to do",
+      "timeSlot": "09:00-09:45"
+    }
+  ]
+}
+
+Generate the plan now:`;
+
+  try {
+    const completion = await withRetry(() =>
+      client.chat.completions.create({
+        model: config.ai.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert AI study planner who creates effective, personalized study schedules.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' },
+      })
+    );
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    
+    return {
+      title: result.title || 'Your Study Plan',
+      summary: result.summary || '',
+      motivationalMessage: result.motivationalMessage || 'You got this! 💪',
+      tasks: result.tasks || [],
+      prompt,
+    };
+  } catch (error) {
+    console.error('AI Study Plan Error:', error);
+    
+    // Fallback plan
+    return _generateFallbackPlan({ subjects, studyHours, focusAreas, preferredTime });
+  }
+}
+
+/**
+ * Generate fallback study plan (if AI fails)
+ */
+function _generateFallbackPlan({ subjects, studyHours, focusAreas, preferredTime }) {
+  const tasks = [];
+  let startHour = preferredTime === 'morning' ? 9 : preferredTime === 'afternoon' ? 14 : 18;
+  let currentTime = startHour;
+  
+  const sessionDuration = 45;
+  const breakDuration = 15;
+  const subjectsList = subjects.length > 0 ? subjects : ['Mathematics', 'Science', 'English'];
+  
+  for (let i = 0; i < Math.floor(studyHours * 60 / (sessionDuration + breakDuration)); i++) {
+    const subject = subjectsList[i % subjectsList.length];
+    const taskType = i % 3 === 0 ? 'revision' : i % 3 === 1 ? 'practice' : 'quiz';
+    
+    const endTime = currentTime + sessionDuration / 60;
+    tasks.push({
+      title: `Study ${subject}`,
+      subject,
+      duration: sessionDuration,
+      priority: focusAreas.includes(subject) ? 'high' : 'medium',
+      type: taskType,
+      description: `${taskType === 'revision' ? 'Review' : taskType === 'practice' ? 'Practice problems for' : 'Take quiz on'} ${subject}`,
+      timeSlot: `${String(Math.floor(currentTime)).padStart(2, '0')}:${String(Math.floor((currentTime % 1) * 60)).padStart(2, '0')}-${String(Math.floor(endTime)).padStart(2, '0')}:${String(Math.floor((endTime % 1) * 60)).padStart(2, '0')}`,
+      order: tasks.length,
+    });
+    
+    currentTime = endTime;
+    
+    // Add break
+    if (i < Math.floor(studyHours * 60 / (sessionDuration + breakDuration)) - 1) {
+      const breakEnd = currentTime + breakDuration / 60;
+      tasks.push({
+        title: 'Break',
+        subject: 'Break',
+        duration: breakDuration,
+        priority: 'low',
+        type: 'break',
+        description: 'Take a short break, stretch, hydrate',
+        timeSlot: `${String(Math.floor(currentTime)).padStart(2, '0')}:${String(Math.floor((currentTime % 1) * 60)).padStart(2, '0')}-${String(Math.floor(breakEnd)).padStart(2, '0')}:${String(Math.floor((breakEnd % 1) * 60)).padStart(2, '0')}`,
+        order: tasks.length,
+      });
+      currentTime = breakEnd;
+    }
+  }
+  
+  return {
+    title: 'Your Personalized Study Plan',
+    summary: `Focused ${studyHours}-hour study session covering ${subjectsList.join(', ')}`,
+    motivationalMessage: 'Stay focused and take regular breaks! You\'re doing great! 🌟',
+    tasks,
+    prompt: 'Fallback plan generated',
+  };
+}
+
 module.exports = { 
   summarizeNotes, 
   scanAndSummarize, 
@@ -436,4 +579,5 @@ module.exports = {
   askQuestion,
   generateSpeech,
   generateRecommendations,
+  generateStudyPlan,
 };
