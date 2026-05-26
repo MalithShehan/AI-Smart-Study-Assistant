@@ -255,4 +255,185 @@ const askQuestion = async ({ question, context = '' }) => {
   };
 };
 
-module.exports = { summarizeNotes, scanAndSummarize, generateQuiz, askQuestion };
+/**
+ * Generate spoken audio for text using OpenAI's TTS API.
+ * @param {object} opts
+ * @param {string} opts.text          - Text to convert to speech
+ * @param {'alloy'|'echo'|'fable'|'onyx'|'nova'|'shimmer'} [opts.voice] - Voice preset
+ * @param {'mp3'|'opus'|'aac'|'flac'} [opts.format] - Audio format
+ * @returns {Promise<Buffer>} Audio buffer
+ */
+const generateSpeech = async ({ text, voice = 'alloy', format = 'mp3' }) => {
+  if (!text || !text.trim()) {
+    const err = new Error('Text is required for speech generation');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Truncate to ~4096 chars (OpenAI TTS limit)
+  const maxChars = 4096;
+  const truncated = text.length > maxChars ? text.slice(0, maxChars) : text;
+
+  const client = getClient();
+  
+  try {
+    const response = await withRetry(() =>
+      client.audio.speech.create({
+        model: 'tts-1',
+        voice,
+        input: truncated,
+        response_format: format,
+      })
+    );
+
+    // Convert response to buffer
+    const buffer = Buffer.from(await response.arrayBuffer());
+    
+    return {
+      audio: buffer,
+      voice,
+      format,
+      textLength: text.length,
+      wasTruncated: text.length > maxChars,
+    };
+  } catch (err) {
+    const error = new Error('Failed to generate speech: ' + err.message);
+    error.statusCode = 502;
+    throw error;
+  }
+};
+
+/**
+ * Generate personalized study recommendations based on user analytics.
+ * @param {object} opts
+ * @param {object} opts.analytics     - User's learning analytics data
+ * @param {string} [opts.userId]      - Optional user ID for context
+ */
+const generateRecommendations = async ({ analytics, userId = null }) => {
+  // Build a comprehensive analytics summary for the AI
+  const summary = _buildAnalyticsSummary(analytics);
+
+  const messages = [
+    {
+      role: 'system',
+      content:
+        'You are an expert study coach. Analyze student performance data and provide actionable recommendations. ' +
+        'Identify weak subjects, suggest study strategies, and create personalized improvement plans. ' +
+        'Be encouraging but honest. Return your response as valid JSON with this structure:\n' +
+        JSON.stringify({
+          weakSubjects: [{ subject: 'string', reason: 'string', priority: 'high|medium|low' }],
+          strengths: ['string'],
+          recommendations: [{ category: 'string', suggestion: 'string', action: 'string' }],
+          studyPlan: { dailyGoalMinutes: 'number', focusAreas: ['string'], weeklyTargets: ['string'] },
+          motivationalMessage: 'string',
+        }) +
+        '\nReturn ONLY the JSON — no markdown fences.',
+    },
+    {
+      role: 'user',
+      content: `Analyze this student's performance and provide recommendations:\n\n${summary}`,
+    },
+  ];
+
+  const result = await chat(messages, {
+    maxTokens: 2048,
+    temperature: 0.6,
+  });
+
+  let recommendations;
+  try {
+    const raw = result.content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    recommendations = JSON.parse(raw);
+  } catch {
+    const err = new Error('AI returned malformed recommendations JSON');
+    err.statusCode = 502;
+    err.raw = result.content;
+    throw err;
+  }
+
+  return {
+    recommendations,
+    basedOn: {
+      totalActivities: analytics.overview?.totals?.totalSessions || 0,
+      totalStudyMinutes: analytics.overview?.totals?.totalStudyMinutes || 0,
+      totalQuizzes: analytics.overview?.totals?.totalQuizzes || 0,
+    },
+    generatedAt: new Date().toISOString(),
+    usage: result.usage,
+  };
+};
+
+/**
+ * Build a human-readable summary of analytics for the AI to process.
+ */
+function _buildAnalyticsSummary(analytics) {
+  const { overview, bySubject, quizHistory, studyByDay } = analytics;
+  
+  let summary = '=== STUDENT PERFORMANCE SUMMARY ===\n\n';
+
+  // Overall stats
+  if (overview?.totals) {
+    const t = overview.totals;
+    summary += `Total Study Time: ${t.totalStudyMinutes || 0} minutes across ${t.totalSessions || 0} sessions\n`;
+    summary += `Quizzes Taken: ${t.totalQuizzes || 0}\n`;
+    summary += `AI Summaries Generated: ${t.totalAiSummaries || 0}\n`;
+    summary += `AI Questions Asked: ${t.totalAiQuestions || 0}\n\n`;
+  }
+
+  // Quiz performance
+  if (overview?.quizStats) {
+    const q = overview.quizStats;
+    summary += `Quiz Performance:\n`;
+    summary += `  Average Score: ${q.avgScore?.toFixed(1) || 'N/A'}%\n`;
+    summary += `  Highest Score: ${q.highestScore || 'N/A'}%\n`;
+    summary += `  Lowest Score: ${q.lowestScore || 'N/A'}%\n`;
+    summary += `  Total Questions Answered: ${q.totalQuestionsAnswered || 0}\n`;
+    summary += `  Correct Answers: ${q.totalCorrectAnswers || 0}\n\n`;
+  }
+
+  // Subject breakdown
+  if (bySubject?.length) {
+    summary += `Activity by Subject:\n`;
+    bySubject.slice(0, 5).forEach((s) => {
+      summary += `  - ${s.subject}: ${s.totalActivities} activities, ${s.totalMinutes || 0} minutes\n`;
+    });
+    summary += '\n';
+  }
+
+  // Recent quiz performance
+  if (quizHistory?.length) {
+    summary += `Recent Quiz Attempts (last ${Math.min(quizHistory.length, 10)}):\n`;
+    quizHistory.slice(0, 10).forEach((q, i) => {
+      summary += `  ${i + 1}. ${q.subject || 'General'}: ${q.score?.toFixed(1) || 'N/A'}% (${q.correctAnswers}/${q.totalQuestions})\n`;
+    });
+    summary += '\n';
+  }
+
+  // Study pattern
+  if (studyByDay?.length) {
+    const totalDays = studyByDay.length;
+    const activeDays = studyByDay.filter(d => d.minutes > 0).length;
+    const avgMinutes = studyByDay.reduce((sum, d) => sum + d.minutes, 0) / Math.max(activeDays, 1);
+    summary += `Study Pattern (last ${totalDays} days):\n`;
+    summary += `  Active Days: ${activeDays}/${totalDays}\n`;
+    summary += `  Average Daily Study Time: ${avgMinutes.toFixed(0)} minutes\n\n`;
+  }
+
+  // Streak info
+  if (overview?.streakInfo) {
+    const s = overview.streakInfo;
+    summary += `Current Study Streak: ${s.currentStreak || 0} days\n`;
+    summary += `Longest Streak: ${s.longestStreak || 0} days\n`;
+  }
+
+  return summary;
+}
+
+module.exports = { 
+  summarizeNotes, 
+  scanAndSummarize, 
+  generateQuiz, 
+  askQuestion,
+  generateSpeech,
+  generateRecommendations,
+};

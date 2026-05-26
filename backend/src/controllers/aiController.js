@@ -1,4 +1,5 @@
 const aiService = require('../services/aiService');
+const analyticsService = require('../services/analyticsService');
 const asyncHandler = require('../utils/asyncHandler');
 const apiResponse = require('../utils/apiResponse');
 
@@ -35,4 +36,49 @@ const askQuestion = asyncHandler(async (req, res) => {
   apiResponse.success(res, data, 'Question answered');
 });
 
-module.exports = { generateQuiz, summarizeNotes, scanAndSummarize, askQuestion };
+/**
+ * POST /api/v1/ai/speak
+ * Convert text to speech using OpenAI TTS.
+ */
+const generateSpeech = asyncHandler(async (req, res) => {
+  const { text, voice = 'alloy', format = 'mp3' } = req.body;
+  
+  const data = await aiService.generateSpeech({ text, voice, format });
+  
+  // Return audio as binary response
+  res.set({
+    'Content-Type': `audio/${format}`,
+    'Content-Length': data.audio.length,
+    'Content-Disposition': `inline; filename="speech.${format}"`,
+  });
+  
+  res.send(data.audio);
+});
+
+/**
+ * GET /api/v1/ai/recommendations
+ * Generate personalized study recommendations based on user's analytics.
+ */
+const getRecommendations = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  
+  // Fetch user's learning analytics
+  const analytics = await analyticsService.getLearningAnalytics(userId);
+  
+  // Generate AI-powered recommendations
+  const data = await aiService.generateRecommendations({ 
+    analytics, 
+    userId: userId.toString() 
+  });
+  
+  apiResponse.success(res, data, 'Recommendations generated');
+});
+
+module.exports = { 
+  generateQuiz, 
+  summarizeNotes, 
+  scanAndSummarize, 
+  askQuestion,
+  generateSpeech,
+  getRecommendations,
+};

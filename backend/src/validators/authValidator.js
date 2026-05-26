@@ -57,6 +57,11 @@ const validateRefreshToken = [
   handleValidationErrors,
 ];
 
+const validateGoogleAuth = [
+  body('idToken').notEmpty().withMessage('Google ID token is required'),
+  handleValidationErrors,
+];
+
 module.exports = {
   validateRegister,
   validateLogin,
@@ -64,4 +69,5 @@ module.exports = {
   validateResetPassword,
   validateChangePassword,
   validateRefreshToken,
+  validateGoogleAuth,
 };

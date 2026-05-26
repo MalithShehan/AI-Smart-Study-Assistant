@@ -8,6 +8,7 @@ const {
   validateSummarize,
   validateScanSummarize,
   validateAskQuestion,
+  validateGenerateSpeech,
 } = require('../validators/aiValidator');
 
 // All AI endpoints require authentication and apply a per-minute rate limit
@@ -24,5 +25,11 @@ router.post('/quiz', validateGenerateQuiz, aiController.generateQuiz);
 
 // Answer a study question (with optional context)
 router.post('/ask', validateAskQuestion, aiController.askQuestion);
+
+// Generate speech from text (TTS)
+router.post('/speak', validateGenerateSpeech, aiController.generateSpeech);
+
+// Get personalized study recommendations
+router.get('/recommendations', aiController.getRecommendations);
 
 module.exports = router;

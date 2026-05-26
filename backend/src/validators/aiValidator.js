@@ -64,9 +64,31 @@ const validateAskQuestion = [
   handleValidationErrors,
 ];
 
+const VALID_VOICES = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+const VALID_FORMATS = ['mp3', 'opus', 'aac', 'flac'];
+
+const validateGenerateSpeech = [
+  body('text')
+    .trim()
+    .notEmpty()
+    .withMessage('text is required')
+    .isLength({ max: 4096 })
+    .withMessage('text must not exceed 4096 characters'),
+  body('voice')
+    .optional()
+    .isIn(VALID_VOICES)
+    .withMessage(`voice must be one of: ${VALID_VOICES.join(', ')}`),
+  body('format')
+    .optional()
+    .isIn(VALID_FORMATS)
+    .withMessage(`format must be one of: ${VALID_FORMATS.join(', ')}`),
+  handleValidationErrors,
+];
+
 module.exports = {
   validateGenerateQuiz,
   validateSummarize,
   validateScanSummarize,
   validateAskQuestion,
+  validateGenerateSpeech,
 };
