@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const googleAuthController = require('../controllers/googleAuthController');
 const { protect } = require('../middlewares/auth');
 const { authLimiter } = require('../middlewares/rateLimiter');
 const {
@@ -10,6 +11,7 @@ const {
   validateResetPassword,
   validateChangePassword,
   validateRefreshToken,
+  validateGoogleAuth,
 } = require('../validators/authValidator');
 
 /**
@@ -73,6 +75,40 @@ router.post('/register', authLimiter, validateRegister, authController.register)
  *         $ref: '#/components/responses/TooManyRequests'
  */
 router.post('/login', authLimiter, validateLogin, authController.login);
+
+/**
+ * @swagger
+ * /auth/google:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Authenticate with Google OAuth
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [idToken]
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Google ID token from client
+ *     responses:
+ *       200:
+ *         description: Google authentication successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       401:
+ *         description: Invalid Google token
+ *       400:
+ *         description: Google email not verified
+ *       429:
+ *         $ref: '#/components/responses/TooManyRequests'
+ */
+router.post('/google', authLimiter, validateGoogleAuth, googleAuthController.googleAuth);
 
 /**
  * @swagger
