@@ -12,7 +12,8 @@ import {
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/context/AuthContext';
-import { Colors } from './src/theme';
+import { ThemeProvider } from './src/context/ThemeContext';
+import { LightColors } from './src/theme';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -25,7 +26,7 @@ export default function App() {
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={LightColors.primary} />
       </View>
     );
   }
@@ -33,10 +34,12 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <StatusBar style="light" backgroundColor={Colors.primary} />
-          <AppNavigator />
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <StatusBar style="light" backgroundColor={LightColors.primary} />
+            <AppNavigator />
+          </AuthProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -47,6 +50,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: LightColors.background,
+  },
+});
   },
 });

@@ -12,6 +12,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { apiPost } from '../api/client';
 import { RootStackParamList } from '../types';
 import {
@@ -39,8 +40,9 @@ interface SettingItem {
 
 export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
   const { user, logout } = useAuth();
+  const { isDark, themeMode, setThemeMode, toggleTheme } = useTheme();
+  
   const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [emailUpdates, setEmailUpdates] = useState(true);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(true);
 
@@ -115,9 +117,9 @@ export const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         {
           label: 'Dark Mode',
           type: 'toggle',
-          value: darkMode,
-          description: 'Easy on the eyes',
-          onToggle: (value) => setDarkMode(value),
+          value: isDark,
+          description: themeMode === 'auto' ? 'Following system (Currently ' + (isDark ? 'Dark' : 'Light') + ')' : (isDark ? 'Dark theme enabled' : 'Light theme enabled'),
+          onToggle: (value) => toggleTheme(),
         },
         {
           label: 'Analytics',

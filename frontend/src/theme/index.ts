@@ -1,29 +1,79 @@
-export const Colors = {
+// Light Theme Colors
+export const LightColors = {
   primary: '#FF7A00',
   primaryLight: '#FFE0B2',
   primaryDark: '#E56900',
   primaryGradient: ['#FF7A00', '#FF9A3C'] as const,
-  secondary: '#FFE0B2',
-  background: '#F8F9FB',
-  card: '#FFFFFF',
-  textDark: '#1E1E1E',
-  textGray: '#6B7280',
-  textLight: '#9CA3AF',
-  success: '#4CAF50',
-  successLight: '#E8F5E9',
+  cream: '#FFF6EB',
   purple: '#8B5CF6',
   purpleLight: '#EDE9FE',
+  purpleDark: '#6D28D9',
+  
+  background: '#FFF6EB', // Cream background
+  backgroundLight: '#FFFFFF',
+  card: '#FFFFFF',
+  
+  text: '#1E1E1E',
+  textSecondary: '#6B7280',
+  textLight: '#9CA3AF',
+  
+  success: '#10B981',
+  successLight: '#D1FAE5',
   danger: '#EF4444',
   dangerLight: '#FEE2E2',
   warning: '#F59E0B',
   warningLight: '#FEF3C7',
+  
   border: '#E5E7EB',
+  borderLight: '#F3F4F6',
+  
   white: '#FFFFFF',
   black: '#000000',
+  
   overlay: 'rgba(0,0,0,0.5)',
   glass: 'rgba(255,255,255,0.15)',
   glassBorder: 'rgba(255,255,255,0.3)',
 };
+
+// Dark Theme Colors
+export const DarkColors = {
+  primary: '#FF7A00',
+  primaryLight: '#FF9A3C',
+  primaryDark: '#E56900',
+  primaryGradient: ['#FF7A00', '#E56900'] as const,
+  cream: '#2D2416',
+  purple: '#8B5CF6',
+  purpleLight: '#6D28D9',
+  purpleDark: '#5B21B6',
+  
+  background: '#0F0F0F',
+  backgroundLight: '#1A1A1A',
+  card: '#1E1E1E',
+  
+  text: '#FFFFFF',
+  textSecondary: '#A0A0A0',
+  textLight: '#6B7280',
+  
+  success: '#10B981',
+  successLight: '#065F46',
+  danger: '#EF4444',
+  dangerLight: '#7F1D1D',
+  warning: '#F59E0B',
+  warningLight: '#78350F',
+  
+  border: '#2D2D2D',
+  borderLight: '#262626',
+  
+  white: '#FFFFFF',
+  black: '#000000',
+  
+  overlay: 'rgba(0,0,0,0.7)',
+  glass: 'rgba(30,30,30,0.5)',
+  glassBorder: 'rgba(255,255,255,0.1)',
+};
+
+// Default to Light (will be controlled by context)
+export const Colors = LightColors;
 
 export const Fonts = {
   regular: 'Poppins_400Regular',
