@@ -12,6 +12,7 @@ const notificationRoutes = require('./notifications');
 const analyticsRoutes = require('./analytics');
 const adminRoutes = require('./admin');
 const resultsRoutes = require('./results');
+const papersRoutes = require('./papers');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -24,5 +25,6 @@ router.use('/notifications', notificationRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/results', resultsRoutes);
+router.use('/papers', papersRoutes);
 
 module.exports = router;
