@@ -90,6 +90,18 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
+    // ── OAuth providers
+    oauth: {
+      google: {
+        id: { type: String, default: null },
+        email: { type: String, default: null },
+      },
+      apple: {
+        id: { type: String, default: null },
+        email: { type: String, default: null },
+      },
+    },
+
     // ── Study data
     studyStats: { type: studyStatsSchema, default: () => ({}) },
     savedNotes: { type: [savedNoteSchema], default: [] },
